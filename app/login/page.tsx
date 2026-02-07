@@ -27,7 +27,7 @@ export default function LoginPage() {
         throw new Error('Please enter both email and password');
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://www.server.waynexshipping.com/api'}/admin/login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://www.server.waynexshipping.com/api'}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -40,11 +40,16 @@ export default function LoginPage() {
 
       const data = await response.json();
       
+      // Check if user is admin
+      if (!data.user?.isAdmin) {
+        throw new Error('Access denied. Admin privileges required.');
+      }
+      
       setSession({
-        email: data.email || email,
-        firstName: data.first_name || data.firstName || 'Admin',
-        lastName: data.last_name || data.lastName || '',
-        isAdmin: true,
+        email: data.user.email,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        isAdmin: data.user.isAdmin,
       });
 
       router.push('/dashboard');
