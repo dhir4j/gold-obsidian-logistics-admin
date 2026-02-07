@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark theme by default - Waynex Dark Palette */
+    --background: 222 19% 6%;        /* #0F1014 - Deepest dark */
+    --foreground: 0 0% 100%;          /* #FFFFFF - White text */
+    --card: 225 14% 11%;              /* #16171C - Card/Sidebar bg */
+    --card-foreground: 0 0% 100%;     /* #FFFFFF */
+    --popover: 225 14% 11%;           /* #16171C */
+    --popover-foreground: 0 0% 100%;  /* #FFFFFF */
+    --primary: 284 56% 40%;           /* #852d9c - Purple accent */
+    --primary-foreground: 0 0% 100%;  /* #FFFFFF */
+    --secondary: 227 13% 13%;         /* #1E1F25 - Slightly lighter */
+    --secondary-foreground: 0 0% 100%; /* #FFFFFF */
+    --muted: 227 13% 13%;             /* #1E1F25 */
+    --muted-foreground: 235 15% 68%;  /* #A0A3BD - Secondary text */
+    --accent: 284 56% 40%;            /* #852d9c - Purple */
+    --accent-foreground: 0 0% 100%;   /* #FFFFFF */
+    --destructive: 0 84% 60%;         /* Red for errors */
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 84% 39%;           /* #00E096 - Green success */
+    --border: 228 11% 17%;            /* Subtle border */
+    --input: 227 13% 13%;             /* #1E1F25 */
+    --ring: 284 56% 40%;              /* #852d9c */
+    --radius: 0.5rem;
+    --chart-1: 284 56% 40%;           /* #852d9c - Purple */
+    --chart-2: 160 84% 39%;           /* #00E096 - Green */
+    --chart-3: 145 63% 49%;           /* #2ECC71 - Light green */
+    --chart-4: 250 95% 68%;           /* Blue */
+    --chart-5: 25 95% 63%;            /* Orange */
+
+    --sidebar-background: 225 14% 11%;    /* #16171C */
+    --sidebar-foreground: 0 0% 100%;      /* #FFFFFF */
+    --sidebar-primary: 284 56% 40%;       /* #852d9c */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 227 13% 13%;        /* #1E1F25 */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 228 11% 17%;
+    --sidebar-ring: 284 56% 40%;
+  }
+
+  .light {
+    /* Light theme (optional) */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 284 56% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 284 56% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 160 84% 39%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 284 56% 40%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 284 56% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 284 56% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/50;
+}
