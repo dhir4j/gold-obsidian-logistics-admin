@@ -23,35 +23,31 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // For demo purposes, we're doing a simple check
-      // In production, this should call the backend auth endpoint
-      // For now, we'll create a mock session for any admin login
-
       if (!email || !password) {
         throw new Error('Please enter both email and password');
       }
 
-      // Mock authentication - replace with actual API call
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/admin/login`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-      // For demo, we'll assume any login with admin@waynex.com is valid
-      if (email.includes('@')) {
-        const [firstName] = email.split('@')[0].split('.');
-        setSession({
-          email,
-          firstName: firstName.charAt(0).toUpperCase() + firstName.slice(1),
-          lastName: 'Admin',
-          isAdmin: true,
-        });
-
-        router.push('/dashboard');
-      } else {
-        throw new Error('Invalid email format');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({ error: 'Login failed' }));
+        throw new Error(errData.error || 'Invalid credentials');
       }
+
+      const data = await response.json();
+      
+      setSession({
+        email: data.email || email,
+        firstName: data.first_name || data.firstName || 'Admin',
+        lastName: data.last_name || data.lastName || '',
+        isAdmin: true,
+      });
+
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
@@ -118,9 +114,7 @@ export default function LoginPage() {
               )}
             </Button>
 
-            <p className="text-xs text-center text-muted-foreground mt-4">
-              Demo: Use any email (e.g., admin@waynex.com) with any password
-            </p>
+
           </form>
         </CardContent>
       </Card>
