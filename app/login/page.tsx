@@ -27,7 +27,7 @@ export default function LoginPage() {
         throw new Error('Please enter both email and password');
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://server.waynexshipping.com/api'}/admin/login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://www.server.waynexshipping.com/api'}/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
