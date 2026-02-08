@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from 'react';
-import { useApi } from '@/hooks/use-api';
+import { useApi, apiMutate } from '@/hooks/use-api';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -14,7 +15,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Search, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import type { UsersResponse } from '@/types';
 
 export default function EmployeesPage() {
@@ -23,7 +33,19 @@ export default function EmployeesPage() {
   const [searchInput, setSearchInput] = useState('');
   const limit = 10;
 
-  const { data, isLoading, error } = useApi<UsersResponse>(
+  // Add Employee form state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  // Delete state
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const { data, isLoading, error, mutate } = useApi<UsersResponse>(
     `/admin/employees?page=${page}&limit=${limit}${search ? `&q=${search}` : ''}`
   );
 
@@ -35,6 +57,54 @@ export default function EmployeesPage() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch();
+    }
+  };
+
+  const resetForm = () => {
+    setFirstName('');
+    setLastName('');
+    setEmail('');
+    setPassword('');
+    setFormError('');
+  };
+
+  const handleAddEmployee = async () => {
+    if (!firstName || !lastName || !email || !password) {
+      setFormError('All fields are required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError('');
+
+    try {
+      await apiMutate('/admin/employees', {
+        method: 'POST',
+        body: JSON.stringify({ firstName, lastName, email, password }),
+      });
+      setDialogOpen(false);
+      resetForm();
+      mutate();
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to create employee');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteEmployee = async (employeeId: number) => {
+    if (!confirm('Are you sure you want to delete this employee?')) return;
+
+    setDeletingId(employeeId);
+    try {
+      await apiMutate(`/admin/employees/${employeeId}`, {
+        method: 'DELETE',
+      });
+      mutate();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete employee');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -75,6 +145,76 @@ export default function EmployeesPage() {
             Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, data?.totalCount || 0)} of {data?.totalCount || 0} employees
           </p>
         </div>
+
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Employee
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Employee</DialogTitle>
+              <DialogDescription>
+                Create a new employee account. They can log in at waynexshipping.com/login using the Employee tab.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="John"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="employee@waynexshipping.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                />
+              </div>
+              {formError && (
+                <p className="text-sm text-destructive">{formError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddEmployee} disabled={isSubmitting}>
+                {isSubmitting ? 'Creating...' : 'Create Employee'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="p-4">
@@ -102,6 +242,7 @@ export default function EmployeesPage() {
                 <TableHead>Balance</TableHead>
                 <TableHead>Total Shipments</TableHead>
                 <TableHead>Join Date</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -120,11 +261,23 @@ export default function EmployeesPage() {
                     <TableCell className="text-sm">
                       {new Date(user.created_at).toLocaleDateString()}
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteEmployee(user.id)}
+                        disabled={deletingId === user.id}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        {deletingId === user.id ? 'Deleting...' : 'Delete'}
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     No employees found
                   </TableCell>
                 </TableRow>
