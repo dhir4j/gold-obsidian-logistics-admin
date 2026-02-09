@@ -83,6 +83,20 @@ export interface DashboardStats {
   total_revenue: number;
   avg_revenue: number;
   total_users: number;
+  total_employees: number;
+  pending_payments: number;
+  shipments_by_status: { status: string; count: number }[];
+  shipments_by_service: { service: string; count: number }[];
+  revenue_over_time: { month: string; orders: number; revenue: number }[];
+  top_destinations: { city: string; count: number }[];
+  recent_shipments: {
+    shipment_id_str: string;
+    receiver_name: string;
+    receiver_city: string;
+    status: string;
+    total: number;
+    booking_date: string;
+  }[];
 }
 
 export interface PaginatedResponse<T> {
