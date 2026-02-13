@@ -23,6 +23,7 @@ import {
   Briefcase,
   CreditCard,
   Gift,
+  Globe,
   LogOut,
   Loader2,
 } from 'lucide-react';
@@ -63,6 +64,7 @@ export default function AdminLayout({
     { href: '/employees', label: 'Employees', icon: Briefcase },
     { href: '/payments', label: 'Payments', icon: CreditCard },
     { href: '/balance-codes', label: 'Balance Codes', icon: Gift },
+    { href: '/international-rates', label: 'International Rates', icon: Globe },
   ];
 
   return (
