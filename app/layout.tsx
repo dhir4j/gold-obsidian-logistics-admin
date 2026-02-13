@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Waynex Logistics - Admin Dashboard",
   description: "Admin dashboard for Waynex Logistics management",
+  icons: {
+    icon: "/forsvg.svg",
+  },
 };
 
 export default function RootLayout({
