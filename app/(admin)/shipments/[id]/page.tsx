@@ -42,7 +42,7 @@ const STATUS_COLORS: Record<string, 'default' | 'secondary' | 'success' | 'warni
 
 const VALID_STATUSES = ['Booked', 'In Transit', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
-interface ShipmentDetail extends Shipment {
+interface ShipmentDetail extends Omit<Shipment, 'user_type'> {
   user_email: string;
   user_type: string;
   payment_utr: string | null;
