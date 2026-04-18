@@ -26,6 +26,7 @@ import {
   Ruler,
   CreditCard,
   History,
+  Edit,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -46,6 +47,7 @@ interface ShipmentDetail extends Omit<Shipment, 'user_type'> {
   user_email: string;
   user_type: string;
   payment_utr: string | null;
+  box_details: { box_number: number; weight_kg: number }[];
 }
 
 export default function ShipmentDetailPage() {
@@ -61,6 +63,12 @@ export default function ShipmentDetailPage() {
   const [activity, setActivity] = useState('');
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState('');
+
+  const [editDate, setEditDate] = useState('');
+  const [editAmount, setEditAmount] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
 
   const handleStatusUpdate = async () => {
     if (!newStatus) return;
@@ -79,6 +87,30 @@ export default function ShipmentDetailPage() {
       setUpdateError(e.message || 'Failed to update status');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleDetailsUpdate = async () => {
+    if (!editDate && !editAmount) return;
+    setEditSaving(true);
+    setEditError('');
+    setEditSuccess('');
+    try {
+      const body: Record<string, string | number> = {};
+      if (editDate) body.booking_date = editDate;
+      if (editAmount) body.total_with_tax_18_percent = parseFloat(editAmount);
+      await apiMutate(`/admin/shipments/${id}/details`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
+      setEditDate('');
+      setEditAmount('');
+      setEditSuccess('Details updated successfully');
+      mutate();
+    } catch (e: any) {
+      setEditError(e.message || 'Failed to update details');
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -289,6 +321,80 @@ export default function ShipmentDetailPage() {
                 </TableBody>
               </Table>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Edit className="h-4 w-4" />
+            Edit Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Booking Date</label>
+              <Input
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                placeholder="YYYY-MM-DD"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Total Amount (incl. 18% GST) ₹</label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+                placeholder={`Current: ₹${shipment.total_with_tax_18_percent}`}
+              />
+            </div>
+          </div>
+          {editError && <p className="text-sm text-destructive">{editError}</p>}
+          {editSuccess && <p className="text-sm text-green-600">{editSuccess}</p>}
+          <Button onClick={handleDetailsUpdate} disabled={(!editDate && !editAmount) || editSaving}>
+            {editSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Box Details */}
+      {shipment.box_details && shipment.box_details.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Package className="h-4 w-4" />
+              Box Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Box</TableHead>
+                    <TableHead>Weight (kg)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {shipment.box_details.map((box: { box_number: number; weight_kg: number }, i: number) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">Box {box.box_number}</TableCell>
+                      <TableCell>{box.weight_kg} kg</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Total boxes: {shipment.box_details.length} | Max weight per box: 20 kg | Max boxes: 4
+            </p>
           </CardContent>
         </Card>
       )}

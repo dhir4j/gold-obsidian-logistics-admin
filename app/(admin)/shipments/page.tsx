@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { ShipmentsResponse } from '@/types';
 import Link from 'next/link';
 
@@ -28,24 +28,63 @@ const STATUS_COLORS: Record<string, 'default' | 'secondary' | 'success' | 'warni
   'Cancelled': 'destructive',
 };
 
+const VALID_STATUSES = ['Booked', 'In Transit', 'Out for Delivery', 'Delivered', 'Cancelled'];
+
 export default function ShipmentsPage() {
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const limit = 10;
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkError, setBulkError] = useState('');
+  const [bulkSuccess, setBulkSuccess] = useState('');
 
   const { data, isLoading, error, mutate } = useApi<ShipmentsResponse>(
-    `/admin/shipments?page=${page}&limit=${limit}${search ? `&q=${search}` : ''}`
+    `/admin/shipments?page=1&limit=9999${search ? `&q=${search}` : ''}`
   );
 
   const handleSearch = () => {
     setSearch(searchInput);
-    setPage(1);
+    setSelectedIds([]);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+    if (e.key === 'Enter') handleSearch();
+  };
+
+  const shipments = data?.shipments || [];
+
+  const allIds = shipments.map((s) => s.id);
+  const allSelected = allIds.length > 0 && selectedIds.length === allIds.length;
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? [] : allIds);
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkUpdate = async () => {
+    if (!bulkStatus || selectedIds.length === 0) return;
+    setBulkUpdating(true);
+    setBulkError('');
+    setBulkSuccess('');
+    try {
+      await apiMutate('/admin/shipments/bulk-status-update', {
+        method: 'POST',
+        body: JSON.stringify({ shipment_ids: selectedIds, status: bulkStatus }),
+      });
+      setBulkSuccess(`Updated ${selectedIds.length} shipment(s) to "${bulkStatus}"`);
+      setSelectedIds([]);
+      setBulkStatus('');
+      mutate();
+    } catch (e: any) {
+      setBulkError(e.message || 'Bulk update failed');
+    } finally {
+      setBulkUpdating(false);
     }
   };
 
@@ -56,7 +95,6 @@ export default function ShipmentsPage() {
           <h1 className="text-3xl font-bold">Shipments</h1>
           <p className="text-muted-foreground">Manage all shipments</p>
         </div>
-
         <Card className="p-6">
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
@@ -84,14 +122,12 @@ export default function ShipmentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Shipments</h1>
-          <p className="text-muted-foreground">
-            Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, data?.totalCount || 0)} of {data?.totalCount || 0} shipments
-          </p>
+          <p className="text-muted-foreground">{data?.totalCount || 0} total shipments</p>
         </div>
       </div>
 
       <Card className="p-4">
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -105,10 +141,51 @@ export default function ShipmentsPage() {
           <Button onClick={handleSearch}>Search</Button>
         </div>
 
+        {/* Bulk Action Bar */}
+        {selectedIds.length > 0 && (
+          <div className="flex items-center gap-3 mb-4 p-3 rounded-md bg-muted border">
+            <span className="text-sm font-medium">{selectedIds.length} selected</span>
+            <select
+              value={bulkStatus}
+              onChange={(e) => setBulkStatus(e.target.value)}
+              className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">Set status...</option>
+              {VALID_STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              onClick={handleBulkUpdate}
+              disabled={!bulkStatus || bulkUpdating}
+            >
+              {bulkUpdating ? 'Updating...' : 'Apply'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { setSelectedIds([]); setBulkStatus(''); setBulkError(''); setBulkSuccess(''); }}
+            >
+              Clear
+            </Button>
+            {bulkError && <span className="text-sm text-destructive">{bulkError}</span>}
+            {bulkSuccess && <span className="text-sm text-green-600">{bulkSuccess}</span>}
+          </div>
+        )}
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    className="cursor-pointer"
+                  />
+                </TableHead>
                 <TableHead>Shipment ID</TableHead>
                 <TableHead>Sender</TableHead>
                 <TableHead>Receiver</TableHead>
@@ -122,9 +199,20 @@ export default function ShipmentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data?.shipments && data.shipments.length > 0 ? (
-                data.shipments.map((shipment) => (
-                  <TableRow key={shipment.id} className="cursor-pointer hover:bg-muted/50">
+              {shipments.length > 0 ? (
+                shipments.map((shipment) => (
+                  <TableRow
+                    key={shipment.id}
+                    className={`hover:bg-muted/50 ${selectedIds.includes(shipment.id) ? 'bg-muted/30' : ''}`}
+                  >
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(shipment.id)}
+                        onChange={() => toggleSelect(shipment.id)}
+                        className="cursor-pointer"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">
                       <Link href={`/shipments/${shipment.shipment_id_str}`} className="text-primary hover:underline">
                         {shipment.shipment_id_str}
@@ -153,7 +241,7 @@ export default function ShipmentsPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                     No shipments found
                   </TableCell>
                 </TableRow>
@@ -161,34 +249,6 @@ export default function ShipmentsPage() {
             </TableBody>
           </Table>
         </div>
-
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-muted-foreground">
-              Page {page} of {data.totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                disabled={page === data.totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
       </Card>
     </div>
   );
